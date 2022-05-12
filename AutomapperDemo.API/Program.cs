@@ -1,6 +1,4 @@
-using AutoMapper.API.Services;
-using AutoMapper;
-
+using AutomapperDemo.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +9,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

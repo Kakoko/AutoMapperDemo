@@ -1,12 +1,13 @@
-﻿using AutoMapper.API.Dto;
-using AutoMapper.API.Entities;
-using AutoMapper.API.Helper;
-using AutoMapper.API.Services;
+﻿using AutoMapper;
+using AutomapperDemo.API.DTO;
+using AutomapperDemo.API.Entities;
+using AutomapperDemo.API.Services;
 using Microsoft.AspNetCore.Mvc;
+
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace AutoMapper.API.Controllers
+namespace AutomapperDemo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -22,32 +23,41 @@ namespace AutoMapper.API.Controllers
         }
         // GET: api/<UsersController>
         [HttpGet]
-        public ActionResult<List<User>> Get()
+        public ActionResult<List<UserReadDto>> Get()
         {
-            return Ok(_userRepository.GetAllUser());
+            var usersFromRepository = _userRepository.GetAllUser();
+            var usersReadDto = _mapper.Map<List<UserReadDto>>(usersFromRepository);
+            return Ok(usersReadDto);
         }
+
 
         // GET api/<UsersController>/5
         [HttpGet("{id}")]
         public ActionResult<UserReadDto> Get(Guid id)
         {
+
+            //return Ok(_userRepository.GetUserById(id));
             var user = _userRepository.GetUserById(id);
 
-            //var userDto = new UserReadDto()
+            var userReadDto = _mapper.Map<UserReadDto>(user);
+            //var userReadDto = new UserReadDto()
             //{
             //    Email = user.Email,
             //    FullName = $"{user.FirstName} {user.LastName}",
-            //    Age = HelperFunctions.GetCurrentAge(user.DateOfBirth)
+            //    Age = HelperFunctions.HelperFunctions.GetCurrentAge(user.DateOfBirth)
             //};
-
-            return Ok(_mapper.Map<UserReadDto>(user));
+            return Ok(userReadDto);
         }
 
         // POST api/<UsersController>
         [HttpPost]
-        public ActionResult<User> Post(User user)
+        public ActionResult<UserReadDto> Post(UserCreateDto user)
         {
-            return Ok(_userRepository.CreateUser(user));
+            var userToCreate = _mapper.Map<User>(user);
+            var createdUser = _userRepository.CreateUser(userToCreate);
+
+
+            return Ok(_mapper.Map<UserReadDto>(createdUser));
         }
 
         

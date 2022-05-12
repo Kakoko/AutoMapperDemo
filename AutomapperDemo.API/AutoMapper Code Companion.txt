@@ -1,0 +1,274 @@
+
+1. Create a folder called Entities
+
+create a class called User
+
+ public class User
+    {
+        public Guid Id { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public DateTimeOffset DateOfBirth { get; set; }
+        public string Password { get; set; } = string.Empty;
+    }
+
+2. Create a folder called Services
+
+Create an Interface IUserRepository
+
+ public interface IUserRepository
+    {
+        User CreateUser(User user);
+        List<User> GetAllUser();
+        User GetUserById(Guid guid);
+    }
+
+Create a class UserRepository
+
+public class UserRepository : IUserRepository
+    {
+        public static List<User> users = new List<User>()
+        {
+            new User { Id = new Guid("45408c64-1af9-4ea4-a9e0-f835b13d980b") , DateOfBirth = Convert.ToDateTime("01/01/1990") ,
+            Email = "test@test.com" , FirstName = "Jane" , LastName = "Doe",
+            Password = "testPassword"},
+            new User { Id = new Guid("804b906d-c6bc-4e58-b454-f3ce7cf7c3f1") , DateOfBirth = Convert.ToDateTime("06/07/1978") ,
+            Email = "test@test.com" , FirstName = "John" , LastName = "Doe",
+            Password = "testPassword2"},
+            new User { Id = new Guid("8335de6c-e315-492d-82b3-18f07aa150a9") , DateOfBirth = Convert.ToDateTime("07/05/2005") ,
+            Email = "test@test.com" , FirstName = "Max" , LastName = "Doe",
+            Password = "testPassword3"}
+        };
+        public User CreateUser(User user)
+        {
+            users.Add(user);
+            return user;
+        }
+
+        public List<User> GetAllUser()
+        {
+            return users;
+        }
+
+        public User GetUserById(Guid guid)
+        {
+            var user = users.FirstOrDefault(u => u.Id == guid);
+
+            return user;
+        }
+    }
+
+
+
+3. Create a folder called Helper for HelperFunctions
+
+public static class HelperFunctions
+    {
+        public static int GetCurrentAge(this DateTimeOffset dateTimeOffset)
+        {
+            var currentDate = DateTime.UtcNow;
+            int age = currentDate.Year - dateTimeOffset.Year;
+
+            if (currentDate < dateTimeOffset.AddYears(age))
+            {
+                age--;
+            }
+
+            return age;
+        }
+    }
+
+
+4.Implement Controllers
+
+
+private readonly IUserRepository _userRepository;
+
+        public UsersController(IUserRepository userRepository)
+        {
+            _userRepository = userRepository;
+        }
+
+
+ // GET: api/<UsersController>
+        [HttpGet]
+        public ActionResult<List<User>> Get()
+        {
+            return Ok(_userRepository.GetAllUser());
+        }
+
+ [HttpGet("{id}")]
+        public ActionResult<User> Get(Guid id)
+        {
+
+            return Ok(_userRepository.GetUserById(id));
+        }
+
+ [HttpPost]
+        public ActionResult<User> Post(User user)
+        {
+            return Ok(_userRepository.CreateUser(user));
+        }
+
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+
+
+
+5. Create a folder called DTO
+
+ public class UserReadDto
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public int Age { get; set; }
+    }
+
+
+6. How would we filter not to show certain information
+
+      public ActionResult<UserReadDto> Get(Guid id)
+        {
+
+            //return Ok(_userRepository.GetUserById(id));
+            var user = _userRepository.GetUserById(id);
+
+            var userReadDto = new UserReadDto()
+            {
+                Email = user.Email,
+                FullName = $"{user.FirstName} {user.LastName}",
+                Age = HelperFunctions.HelperFunctions.GetCurrentAge(user.DateOfBirth)
+            };
+            return Ok(userReadDto);
+        }
+
+
+
+
+
+
+4e696194-27d7-4585-a295-257486447818
+def8fe61-fe9a-4f7e-b4d8-ecf6003926b5
+6c458745-5870-4b5b-8344-6fc40ebbda7d
+1fd71f81-de52-4693-b98a-43e2e1c3cc13
+697cf2d3-46fc-4ee6-8b5f-2ea1cc8b9719
+
+
+
+
+7. We need to install the Automapper
+
+Install-Package AutoMapper.Extensions.Microsoft.DependencyInjection 
+
+8. Setting AutoMapper ground work
+
+AutoMapper works on your source object and it's destination.
+For better house keeping we use inherit from its Profile that allows us to set the configurations
+
+ public class MappingProfile:Profile
+    {
+        public MappingProfile()
+        {
+            
+        }
+    }
+
+9. The profile class has to be registered in the Dependency Injection Container
+
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+
+10. The AutoMapper can now be injected into the controller 
+
+ public TestController(IMapper mapper)
+        {
+            _mapper = mapper;
+        }
+
+
+
+
+11. Lets use Automapper in our COntroller
+
+var user = _userRepository.GetUserById(id);
+var userReadDto = _mapper.Map<UserReadDto>(user);
+ return Ok(userReadDto);
+
+
+12. Lets Map the Entities
+
+  public MappingProfile()
+        {
+            //Source -> Destination
+            CreateMap<User, UserReadDto>();
+}
+
+
+13. //Source -> Destination
+            CreateMap<User, UserReadDto>()
+                .ForMember(
+                    dest => dest.FullName,
+                    opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"))
+                .ForMember(
+                    dest => dest.Age,
+                    opt => opt.MapFrom(src => src.DateOfBirth.GetCurrentAge())
+                    );
+
+
+14. Implementing in the other endpoints
+
+  [HttpGet]
+        public ActionResult<List<UserReadDto>> Get()
+        {
+            var usersFromRepository = _userRepository.GetAllUser();
+            var usersReadDto = _mapper.Map<List<UserReadDto>>(usersFromRepository);
+            return Ok(usersReadDto);
+        }
+
+
+
+15. Creating a User Create Dto
+
+public class UserCreateDto
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public DateTimeOffset DateOfBirth { get; set; }
+        public string Password { get; set; } = string.Empty;
+    }
+
+
+16. Mapping the new relationship
+
+  CreateMap<UserCreateDto, User>();
+
+
+17. Creating a Guid
+
+Guid id = Guid.NewGuid();
+
+Adding it to the repository
+
+
+public User CreateUser(User user)
+        {
+            user.Id = Guid.NewGuid();
+            users.Add(user);
+            return user;
+        }
+
+18. Configuring the Post Endpoint
+
+ // POST api/<UsersController>
+        [HttpPost]
+        public ActionResult<UserReadDto> Post(UserCreateDto user)
+        {
+            var userToCreate = _mapper.Map<User>(user);
+            var createdUser = _userRepository.CreateUser(userToCreate);
+
+
+            return Ok(_mapper.Map<UserReadDto>(createdUser));
+        }
